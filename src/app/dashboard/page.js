@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isLoggedIn, getTokens } from '@/lib/auth';
+import { isLoggedIn, getTokens, clearTokens } from '@/lib/auth';
 import { getMe, getProfiles } from '@/lib/api';
 import NavBar from '@/components/NavBar';
 import StatsGrid from '@/components/StatsGrid';
@@ -44,8 +44,10 @@ export default function DashboardPage() {
       const me = await getMe();
       console.log('getMe response:', me);
       
+      // After getMe() returns null, clear tokens before redirecting
       if (!me?.data) {
-        console.log('No user data, redirecting to login');
+        clearTokens(); // Clear invalid tokens
+        console.log('No user data, clearing tokens and redirecting to login');
         router.replace('/login');
         return;
       }
@@ -74,8 +76,11 @@ export default function DashboardPage() {
       setLoading(false);
     } catch (err) {
       console.error('Init error:', err);
+      // On error, clear tokens and redirect to login
+      clearTokens();
       setError(err.message);
       setLoading(false);
+      router.replace('/login');
     }
   }
 

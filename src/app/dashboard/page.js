@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isLoggedIn, logout } from '@/lib/auth';
+import { isLoggedIn, logout, getTokens, refreshTokens } from '@/lib/auth';
 import { getMe, getProfiles } from '@/lib/api';
 import StatsGrid from '@/components/StatsGrid';
 import ProfilesTable from '@/components/ProfilesTable';
@@ -19,42 +19,90 @@ export default function DashboardPage() {
   const [filters, setFilters] = useState({ gender: '', age_group: '', country_id: '', min_age: '', max_age: '', sort_by: '', order: '' });
   const [tab, setTab] = useState('browse');
   const [loading, setLoading] = useState(true);
+  const [authChecking, setAuthChecking] = useState(true);
 
   useEffect(() => {
-    if (!isLoggedIn()) { router.replace('/login'); return; }
-    init();
+    checkAuth();
   }, []);
 
-  async function init() {
-    const me = await getMe();
-    if (!me?.data) { router.replace('/login'); return; }
-    setUser(me.data);
+  const checkAuth = async () => {
+    // First check if logged in
+    if (!isLoggedIn()) {
+      router.replace('/login');
+      return;
+    }
 
-    const [total, male, female, adult, senior] = await Promise.all([
-      getProfiles({ limit: 1 }),
-      getProfiles({ gender: 'male', limit: 1 }),
-      getProfiles({ gender: 'female', limit: 1 }),
-      getProfiles({ age_group: 'adult', limit: 1 }),
-      getProfiles({ age_group: 'senior', limit: 1 }),
-    ]);
+    // Try to get user data
+    try {
+      const me = await getMe();
+      if (!me?.data) {
+        // Try to refresh token
+        const refreshed = await refreshTokens();
+        if (refreshed) {
+          // Retry getting user data
+          const retryMe = await getMe();
+          if (!retryMe?.data) {
+            router.replace('/login');
+            return;
+          }
+          setUser(retryMe.data);
+        } else {
+          router.replace('/login');
+          return;
+        }
+      } else {
+        setUser(me.data);
+      }
+      
+      // Load data after auth is confirmed
+      await loadInitialData();
+      setAuthChecking(false);
+    } catch (error) {
+      console.error('Auth check error:', error);
+      router.replace('/login');
+    }
+  };
 
-    setStats({
-      total: total?.total,
-      male: male?.total,
-      female: female?.total,
-      adult: adult?.total,
-      senior: senior?.total,
-    });
+  const loadInitialData = async () => {
+    try {
+      const [total, male, female, adult, senior] = await Promise.all([
+        getProfiles({ limit: 1 }),
+        getProfiles({ gender: 'male', limit: 1 }),
+        getProfiles({ gender: 'female', limit: 1 }),
+        getProfiles({ age_group: 'adult', limit: 1 }),
+        getProfiles({ age_group: 'senior', limit: 1 }),
+      ]);
 
-    await loadProfiles(1);
-    setLoading(false);
-  }
+      setStats({
+        total: total?.total || 0,
+        male: male?.total || 0,
+        female: female?.total || 0,
+        adult: adult?.total || 0,
+        senior: senior?.total || 0,
+      });
+
+      await loadProfiles(1);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setLoading(false);
+    }
+  };
 
   async function loadProfiles(page = 1) {
-    const data = await getProfiles({ ...filters, page, limit: 15 });
-    if (!data) return;
-    setProfiles(data.data || []);
-    setMeta({ page: data.page, totalPages: data.total_pages, total: data.total, limit: data.limit });
+    try {
+      const data = await getProfiles({ ...filters, page, limit: 15 });
+      if (!data) return;
+      setProfiles(data.data || []);
+      setMeta({ 
+        page: data.page, 
+        totalPages: data.total_pages, 
+        total: data.total, 
+        limit: data.limit 
+      });
+    } catch (error) {
+      console.error('Error loading profiles:', error);
+    }
   }
 
   function handleFilterChange(key, val) {
@@ -71,33 +119,36 @@ export default function DashboardPage() {
     return num.toLocaleString();
   };
 
-  if (loading) return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'var(--bg-primary)',
-    }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{
-          width: 48,
-          height: 48,
-          border: '3px solid rgba(6, 182, 212, 0.1)',
-          borderTopColor: '#06b6d4',
-          borderRadius: '50%',
-          animation: 'spin 0.6s linear infinite',
-          margin: '0 auto 16px',
-        }} />
-        <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading dashboard...</p>
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
+  // Show loading while checking auth
+  if (authChecking || loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-primary)',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 48,
+            height: 48,
+            border: '3px solid rgba(6, 182, 212, 0.1)',
+            borderTopColor: '#06b6d4',
+            borderRadius: '50%',
+            animation: 'spin 0.6s linear infinite',
+            margin: '0 auto 16px',
+          }} />
+          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading dashboard...</p>
+          <style>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <div style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
@@ -118,7 +169,7 @@ export default function DashboardPage() {
               marginBottom: 8,
               letterSpacing: '-0.02em',
             }}>
-              Welcome back, <span className="gradient-text">{user?.username}</span>
+              Welcome back, <span className="gradient-text">{user?.username || 'User'}</span>
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
               Here's what's happening with your demographic data today.
@@ -149,7 +200,7 @@ export default function DashboardPage() {
                 fontWeight: 600,
                 color: '#fff',
               }}>
-                {user?.username?.charAt(0).toUpperCase()}
+                {user?.username?.charAt(0)?.toUpperCase() || 'U'}
               </div>
             )}
             

@@ -9,34 +9,36 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [redirectUrl, setRedirectUrl] = useState('');
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    // Set redirect URL only on client side to avoid hydration mismatch
-    setRedirectUrl(`${API}/auth/github?redirect_uri=${encodeURIComponent(window.location.origin + '/login')}`);
-    
-    // Handle OAuth callback tokens in URL (from backend redirect)
-    const access = searchParams.get('access_token');
-    const refresh = searchParams.get('refresh_token');
+    // Check if we have tokens in URL (from OAuth callback)
+    const accessToken = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token');
     const username = searchParams.get('username');
-    if (access && refresh) {
-      saveTokens({ accessToken: access, refreshToken: refresh, username });
+    
+    if (accessToken && refreshToken) {
+      // Save tokens and redirect to dashboard
+      saveTokens({ accessToken, refreshToken, username });
+      // Clean URL by removing tokens
       router.replace('/dashboard');
       return;
     }
-    if (isLoggedIn()) router.replace('/dashboard');
-  }, [searchParams, router, API]);
+    
+    // If already logged in, go to dashboard
+    if (isLoggedIn()) {
+      router.replace('/dashboard');
+    }
+  }, [searchParams, router]);
 
   const handleGitHubLogin = (e) => {
-    if (!redirectUrl || redirectUrl === '#') {
-      e.preventDefault();
-      return;
-    }
+    e.preventDefault();
     setIsRedirecting(true);
+    // Redirect to GitHub OAuth
+    const redirectUri = `${window.location.origin}/login`;
+    window.location.href = `${API}/auth/github?redirect_uri=${encodeURIComponent(redirectUri)}`;
   };
 
-  // Spinner component
   const Spinner = () => (
     <div style={{
       display: 'inline-block',
@@ -86,26 +88,18 @@ function LoginContent() {
           Demographic intelligence platform
         </p>
 
-        <a
-          href={redirectUrl || '#'}
+        <button
           onClick={handleGitHubLogin}
+          disabled={isRedirecting}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
             background: '#fff', color: '#000', fontWeight: 600, fontSize: 15,
             padding: '13px 24px', borderRadius: 8, textDecoration: 'none',
             transition: 'opacity .2s',
-            cursor: redirectUrl && !isRedirecting ? 'pointer' : 'default',
-            opacity: redirectUrl && !isRedirecting ? 1 : 0.7,
-          }}
-          onMouseEnter={e => {
-            if (!isRedirecting && redirectUrl) {
-              e.currentTarget.style.opacity = '.85';
-            }
-          }}
-          onMouseLeave={e => {
-            if (!isRedirecting && redirectUrl) {
-              e.currentTarget.style.opacity = '1';
-            }
+            cursor: isRedirecting ? 'default' : 'pointer',
+            opacity: isRedirecting ? 0.7 : 1,
+            border: 'none',
+            width: '100%',
           }}
         >
           {isRedirecting ? (
@@ -121,7 +115,7 @@ function LoginContent() {
               <span>Continue with GitHub</span>
             </>
           )}
-        </a>
+        </button>
       </div>
     </div>
   );

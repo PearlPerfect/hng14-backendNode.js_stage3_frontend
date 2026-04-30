@@ -1,6 +1,6 @@
 import { getTokens, refreshTokens, clearTokens } from './auth';
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+const API = 'https://cors-anywhere.herokuapp.com/' + process.env.NEXT_PUBLIC_API_URL;
 
 export async function apiFetch(path, options = {}) {
   const { accessToken } = getTokens();

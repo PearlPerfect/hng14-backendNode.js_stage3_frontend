@@ -122,3 +122,69 @@ export async function logout(refreshToken) {
     console.error('Logout error:', error);
   }
 }
+
+// ============= USER MANAGEMENT FUNCTIONS =============
+
+export async function getUsers(params = {}) {
+  const qs = new URLSearchParams(
+    Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))
+  );
+  try {
+    const res = await apiFetch(`/api/users?${qs}`);
+    if (!res) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Get users error:', error);
+    return null;
+  }
+}
+
+export async function getUser(id) {
+  try {
+    const res = await apiFetch(`/api/users/${id}`);
+    if (!res) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Get user error:', error);
+    return null;
+  }
+}
+
+export async function createUser(userData) {
+  try {
+    const res = await apiFetch('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+    if (!res) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Create user error:', error);
+    return null;
+  }
+}
+
+export async function updateUser(id, userData) {
+  try {
+    const res = await apiFetch(`/api/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+    if (!res) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Update user error:', error);
+    return null;
+  }
+}
+
+export async function deleteUser(id) {
+  try {
+    const res = await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
+    if (!res) return null;
+    return res.status === 204 ? { status: 'success' } : await res.json();
+  } catch (error) {
+    console.error('Delete user error:', error);
+    return null;
+  }
+}

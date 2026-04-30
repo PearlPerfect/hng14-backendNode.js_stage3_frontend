@@ -1,42 +1,38 @@
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export function getTokens() {
-  if (typeof window === 'undefined') return { accessToken: null, refreshToken: null, username: null };
+  if (typeof window === 'undefined') return {};
   return {
-    accessToken: localStorage.getItem('access_token'),
+    accessToken:  localStorage.getItem('access_token'),
     refreshToken: localStorage.getItem('refresh_token'),
-    username: localStorage.getItem('username'),
+    username:     localStorage.getItem('username'),
   };
 }
 
 export function saveTokens({ accessToken, refreshToken, username }) {
-  if (typeof window === 'undefined') return;
-  if (accessToken) localStorage.setItem('access_token', accessToken);
-  if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
+  localStorage.setItem('access_token',  accessToken);
+  localStorage.setItem('refresh_token', refreshToken);
   if (username) localStorage.setItem('username', username);
 }
 
 export function clearTokens() {
-  if (typeof window === 'undefined') return;
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('username');
 }
 
 export function isLoggedIn() {
-  if (typeof window === 'undefined') return false;
   return !!localStorage.getItem('access_token');
 }
 
 export async function refreshTokens() {
   const { refreshToken } = getTokens();
   if (!refreshToken) return false;
-  
   try {
-    const res = await fetch(`${API}/auth/refresh`, {
-      method: 'POST',
+    const res  = await fetch(`${API}/auth/refresh`, {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      body:    JSON.stringify({ refresh_token: refreshToken }),
     });
     const data = await res.json();
     if (data.access_token) {
@@ -44,24 +40,7 @@ export async function refreshTokens() {
       return true;
     }
     return false;
-  } catch (error) {
-    console.error('Refresh token error:', error);
+  } catch {
     return false;
   }
-}
-
-export async function logout() {
-  const { refreshToken } = getTokens();
-  if (refreshToken) {
-    try {
-      await fetch(`${API}/auth/logout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  }
-  clearTokens();
 }

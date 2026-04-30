@@ -6,81 +6,72 @@ export async function apiFetch(path, options = {}) {
   const { accessToken } = getTokens();
 
   const headers = {
-    'Content-Type': 'application/json',
+    'Content-Type':  'application/json',
     'X-API-Version': '1',
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     ...options.headers,
   };
 
-  try {
-    const res = await fetch(`${API}${path}`, { ...options, headers });
+  const res = await fetch(`${API}${path}`, { ...options, headers });
 
-    if (res.status === 401) {
-      const refreshed = await refreshTokens();
-      if (refreshed) {
-        const { accessToken: newToken } = getTokens();
-        const retry = await fetch(`${API}${path}`, {
-          ...options,
-          headers: { ...headers, Authorization: `Bearer ${newToken}` },
-        });
-        return retry;
-      }
-      clearTokens();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
-      return null;
+  // Auto-refresh on 401
+  if (res.status === 401) {
+    const refreshed = await refreshTokens();
+    if (refreshed) {
+      const { accessToken: newToken } = getTokens();
+      const retry = await fetch(`${API}${path}`, {
+        ...options,
+        headers: { ...headers, Authorization: `Bearer ${newToken}` },
+      });
+      return retry;
     }
-    return res;
-  } catch (error) {
-    console.error('API fetch error:', error);
+    clearTokens();
+    window.location.href = '/login';
     return null;
   }
+
+  return res;
 }
 
 export async function getProfiles(params = {}) {
-  const qs = new URLSearchParams(
+  const qs  = new URLSearchParams(
     Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))
   );
-  try {
-    const res = await apiFetch(`/api/profiles?${qs}`);
-    if (!res) return null;
-    return await res.json();
-  } catch (error) {
-    console.error('Get profiles error:', error);
-    return null;
-  }
+  const res = await apiFetch(`/api/profiles?${qs}`);
+  return res?.json();
 }
 
 export async function searchProfiles(q, page = 1, limit = 10) {
-  try {
-    const res = await apiFetch(`/api/profiles/search?q=${encodeURIComponent(q)}&page=${page}&limit=${limit}`);
-    if (!res) return null;
-    return await res.json();
-  } catch (error) {
-    console.error('Search profiles error:', error);
-    return null;
-  }
+  const res = await apiFetch(`/api/profiles/search?q=${encodeURIComponent(q)}&page=${page}&limit=${limit}`);
+  return res?.json();
 }
 
 export async function getProfile(id) {
-  try {
-    const res = await apiFetch(`/api/profiles/${id}`);
-    if (!res) return null;
-    return await res.json();
-  } catch (error) {
-    console.error('Get profile error:', error);
-    return null;
-  }
+  const res = await apiFetch(`/api/profiles/${id}`);
+  return res?.json();
+}
+
+export async function createProfile(name) {
+  const res = await apiFetch('/api/profiles', {
+    method: 'POST',
+    body:   JSON.stringify({ name }),
+  });
+  return res?.json();
+}
+
+export async function deleteProfile(id) {
+  const res = await apiFetch(`/api/profiles/${id}`, { method: 'DELETE' });
+  return res?.status === 204 ? { status: 'success' } : res?.json();
 }
 
 export async function getMe() {
-  try {
-    const res = await apiFetch('/auth/me');
-    if (!res) return null;
-    return await res.json();
-  } catch (error) {
-    console.error('Get me error:', error);
-    return null;
-  }
+  const res = await apiFetch('/auth/me');
+  return res?.json();
+}
+
+export async function logout(refreshToken) {
+  await apiFetch('/auth/logout', {
+    method: 'POST',
+    body:   JSON.stringify({ refresh_token: refreshToken }),
+  });
 }

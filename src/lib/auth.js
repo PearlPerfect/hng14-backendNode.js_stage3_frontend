@@ -10,12 +10,14 @@ export function getTokens() {
 }
 
 export function saveTokens({ accessToken, refreshToken, username }) {
+  if (typeof window === 'undefined') return;
   if (accessToken) localStorage.setItem('access_token', accessToken);
   if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
   if (username) localStorage.setItem('username', username);
 }
 
 export function clearTokens() {
+  if (typeof window === 'undefined') return;
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('username');
@@ -23,8 +25,7 @@ export function clearTokens() {
 
 export function isLoggedIn() {
   if (typeof window === 'undefined') return false;
-  const token = localStorage.getItem('access_token');
-  return !!token;
+  return !!localStorage.getItem('access_token');
 }
 
 export async function refreshTokens() {
@@ -37,13 +38,9 @@ export async function refreshTokens() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
-    
     const data = await res.json();
     if (data.access_token) {
-      saveTokens({ 
-        accessToken: data.access_token, 
-        refreshToken: data.refresh_token 
-      });
+      saveTokens({ accessToken: data.access_token, refreshToken: data.refresh_token });
       return true;
     }
     return false;

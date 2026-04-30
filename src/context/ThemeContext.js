@@ -1,4 +1,5 @@
 'use client';
+
 import { createContext, useContext, useEffect, useState } from 'react';
 
 const ThemeContext = createContext();
@@ -9,7 +10,6 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     setMounted(true);
-    // Check localStorage for saved theme
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light' || savedTheme === 'dark') {
       setTheme(savedTheme);
@@ -20,8 +20,6 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     if (!mounted) return;
-    
-    // Apply theme class to html element
     const root = document.documentElement;
     root.classList.remove('dark', 'light');
     root.classList.add(theme);
@@ -32,7 +30,6 @@ export function ThemeProvider({ children }) {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  // Don't render anything until mounted to prevent hydration mismatch
   if (!mounted) {
     return null;
   }

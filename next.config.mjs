@@ -1,43 +1,31 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactCompiler: true,
+  // Disable React Compiler for Vercel deployment stability
+  reactCompiler: false,
+  
   reactStrictMode: true,
   swcMinify: true,
   
-  // Webpack configuration for better Fast Refresh
-  webpack: (config, { dev, isServer }) => {
-    if (dev && !isServer) {
-      // Improve Fast Refresh stability
-      config.optimization.moduleIds = 'named';
-      config.optimization.chunkIds = 'named';
-      
-      // Ensure Fast Refresh works properly
-      config.cache = {
-        type: 'filesystem',
-        buildDependencies: {
-          config: [__filename],
-        },
-      };
-    }
-    return config;
+  // Optimize for Vercel
+  images: {
+    domains: ['avatars.githubusercontent.com', 'github.com'],
+    unoptimized: false,
   },
   
-  // Environment variables
+  // Environment variables that will be available at build time
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
   
-  // Transpile packages if needed
-  transpilePackages: [],
+  // Production optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
   
-  // Disable x-powered-by header for security
-  poweredByHeader: false,
-  
-  // Compression
-  compress: true,
-  
-  // Production source maps (optional)
-  productionBrowserSourceMaps: false,
+  // Ensure proper handling of client components
+  experimental: {
+    optimizeCss: true,
+  },
 };
 
 export default nextConfig;

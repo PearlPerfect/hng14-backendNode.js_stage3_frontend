@@ -15,7 +15,6 @@ export async function apiFetch(path, options = {}) {
   try {
     const res = await fetch(`${API}${path}`, { ...options, headers });
 
-    // Auto-refresh on 401
     if (res.status === 401) {
       const refreshed = await refreshTokens();
       if (refreshed) {
@@ -26,18 +25,16 @@ export async function apiFetch(path, options = {}) {
         });
         return retry;
       }
-      // If refresh failed, clear tokens and redirect to login
       clearTokens();
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
       return null;
     }
-
     return res;
   } catch (error) {
     console.error('API fetch error:', error);
-    throw error;
+    return null;
   }
 }
 
@@ -48,8 +45,7 @@ export async function getProfiles(params = {}) {
   try {
     const res = await apiFetch(`/api/profiles?${qs}`);
     if (!res) return null;
-    const data = await res.json();
-    return data;
+    return await res.json();
   } catch (error) {
     console.error('Get profiles error:', error);
     return null;
@@ -78,31 +74,6 @@ export async function getProfile(id) {
   }
 }
 
-export async function createProfile(name) {
-  try {
-    const res = await apiFetch('/api/profiles', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    });
-    if (!res) return null;
-    return await res.json();
-  } catch (error) {
-    console.error('Create profile error:', error);
-    return null;
-  }
-}
-
-export async function deleteProfile(id) {
-  try {
-    const res = await apiFetch(`/api/profiles/${id}`, { method: 'DELETE' });
-    if (!res) return null;
-    return res.status === 204 ? { status: 'success' } : await res.json();
-  } catch (error) {
-    console.error('Delete profile error:', error);
-    return null;
-  }
-}
-
 export async function getMe() {
   try {
     const res = await apiFetch('/auth/me');
@@ -110,43 +81,6 @@ export async function getMe() {
     return await res.json();
   } catch (error) {
     console.error('Get me error:', error);
-    return null;
-  }
-}
-
-export async function exportProfiles(format = 'csv', filters = {}) {
-  const qs = new URLSearchParams(
-    Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== '' && v != null))
-  );
-  qs.append('format', format);
-  
-  try {
-    const { accessToken } = getTokens();
-    const url = `${API}/api/profiles/export?${qs}`;
-    
-    const response = await fetch(url, {
-      headers: {
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
-    });
-    
-    if (response.status === 401) {
-      const refreshed = await refreshTokens();
-      if (refreshed) {
-        const { accessToken: newToken } = getTokens();
-        const retry = await fetch(url, {
-          headers: {
-            ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
-          },
-        });
-        return retry;
-      }
-      return null;
-    }
-    
-    return response;
-  } catch (error) {
-    console.error('Export profiles error:', error);
     return null;
   }
 }

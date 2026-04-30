@@ -1,167 +1,350 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter }           from 'next/navigation';
-import { isLoggedIn, getTokens } from '@/lib/auth';
-import { getMe, getProfiles }    from '@/lib/api';
-import NavBar        from '@/components/NavBar';
-import StatsGrid     from '@/components/StatsGrid';
+import { useRouter } from 'next/navigation';
+import { isLoggedIn, logout, getTokens, refreshTokens } from '@/lib/auth';
+import { getMe, getProfiles } from '@/lib/api';
+import StatsGrid from '@/components/StatsGrid';
 import ProfilesTable from '@/components/ProfilesTable';
-import NlpSearch     from '@/components/NlpSearch';
+import NlpSearch from '@/components/NlpSearch';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function DashboardPage() {
   const router = useRouter();
-
-  const [user,    setUser]    = useState(null);
-  const [stats,   setStats]   = useState({});
+  const [user, setUser] = useState(null);
+  const [stats, setStats] = useState({});
   const [profiles, setProfiles] = useState([]);
-  const [meta,    setMeta]    = useState({ page: 1, totalPages: 1, total: 0, limit: 15 });
+  const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0, limit: 15 });
   const [filters, setFilters] = useState({ gender: '', age_group: '', country_id: '', min_age: '', max_age: '', sort_by: '', order: '' });
-  const [tab,     setTab]     = useState('browse');
+  const [tab, setTab] = useState('browse');
   const [loading, setLoading] = useState(true);
+  const [authChecking, setAuthChecking] = useState(true);
 
   useEffect(() => {
-    if (!isLoggedIn()) { router.replace('/login'); return; }
-    init();
+    checkAuth();
   }, []);
 
-  async function init() {
-    const me = await getMe();
-    if (!me?.data) { router.replace('/login'); return; }
-    setUser(me.data);
+  const checkAuth = async () => {
+    // First check if logged in
+    if (!isLoggedIn()) {
+      router.replace('/login');
+      return;
+    }
 
-    const [total, male, female, adult, senior] = await Promise.all([
-      getProfiles({ limit: 1 }),
-      getProfiles({ gender: 'male',    limit: 1 }),
-      getProfiles({ gender: 'female',  limit: 1 }),
-      getProfiles({ age_group: 'adult',  limit: 1 }),
-      getProfiles({ age_group: 'senior', limit: 1 }),
-    ]);
+    // Try to get user data
+    try {
+      const me = await getMe();
+      if (!me?.data) {
+        // Try to refresh token
+        const refreshed = await refreshTokens();
+        if (refreshed) {
+          // Retry getting user data
+          const retryMe = await getMe();
+          if (!retryMe?.data) {
+            router.replace('/login');
+            return;
+          }
+          setUser(retryMe.data);
+        } else {
+          router.replace('/login');
+          return;
+        }
+      } else {
+        setUser(me.data);
+      }
+      
+      // Load data after auth is confirmed
+      await loadInitialData();
+      setAuthChecking(false);
+    } catch (error) {
+      console.error('Auth check error:', error);
+      router.replace('/login');
+    }
+  };
 
-    setStats({
-      total:  total?.total,
-      male:   male?.total,
-      female: female?.total,
-      adult:  adult?.total,
-      senior: senior?.total,
-    });
+  const loadInitialData = async () => {
+    try {
+      const [total, male, female, adult, senior] = await Promise.all([
+        getProfiles({ limit: 1 }),
+        getProfiles({ gender: 'male', limit: 1 }),
+        getProfiles({ gender: 'female', limit: 1 }),
+        getProfiles({ age_group: 'adult', limit: 1 }),
+        getProfiles({ age_group: 'senior', limit: 1 }),
+      ]);
 
-    await loadProfiles(1);
-    setLoading(false);
-  }
+      setStats({
+        total: total?.total || 0,
+        male: male?.total || 0,
+        female: female?.total || 0,
+        adult: adult?.total || 0,
+        senior: senior?.total || 0,
+      });
+
+      await loadProfiles(1);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setLoading(false);
+    }
+  };
 
   async function loadProfiles(page = 1) {
-    const data = await getProfiles({ ...filters, page, limit: 15 });
-    if (!data) return;
-    setProfiles(data.data || []);
-    setMeta({ page: data.page, totalPages: data.total_pages, total: data.total, limit: data.limit });
+    try {
+      const data = await getProfiles({ ...filters, page, limit: 15 });
+      if (!data) return;
+      setProfiles(data.data || []);
+      setMeta({ 
+        page: data.page, 
+        totalPages: data.total_pages, 
+        total: data.total, 
+        limit: data.limit 
+      });
+    } catch (error) {
+      console.error('Error loading profiles:', error);
+    }
   }
 
   function handleFilterChange(key, val) {
     setFilters(f => ({ ...f, [key]: val }));
   }
 
-  const inputStyle = {
-    background: '#131619', border: '1px solid #22282f', color: '#dde4ee',
-    fontFamily: 'JetBrains Mono', fontSize: 12, padding: '8px 12px',
-    borderRadius: 6, outline: 'none',
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/login');
   };
 
-  const tabStyle = (active) => ({
-    fontFamily: 'JetBrains Mono', fontSize: 12, fontWeight: 600,
-    padding: '10px 18px', cursor: 'pointer', border: 'none',
-    background: 'transparent', marginBottom: -1,
-    color:        active ? '#00e5a0' : '#566070',
-    borderBottom: active ? '2px solid #00e5a0' : '2px solid transparent',
-  });
+  const formatNumber = (num) => {
+    if (!num) return '0';
+    return num.toLocaleString();
+  };
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'JetBrains Mono', color: '#566070' }}>
-      Loading…
-    </div>
-  );
+  // Show loading while checking auth
+  if (authChecking || loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-primary)',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 48,
+            height: 48,
+            border: '3px solid rgba(6, 182, 212, 0.1)',
+            borderTopColor: '#06b6d4',
+            borderRadius: '50%',
+            animation: 'spin 0.6s linear infinite',
+            margin: '0 auto 16px',
+          }} />
+          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading dashboard...</p>
+          <style>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <NavBar user={user} />
-
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px 80px' }}>
-
-        {/* Welcome banner */}
-        <div style={{
-          background: 'linear-gradient(135deg,rgba(0,229,160,.08),rgba(56,189,248,.05))',
-          border: '1px solid rgba(0,229,160,.15)', borderRadius: 12,
-          padding: '24px 28px', display: 'flex', alignItems: 'center', gap: 20, marginBottom: 32,
+    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 24px' }}>
+        
+        {/* Welcome Section with Theme Toggle and Logout */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: 32,
         }}>
-          {user?.avatar_url ? (
-            <img src={user.avatar_url} alt="avatar" width={56} height={56}
-              style={{ borderRadius: '50%', border: '3px solid rgba(0,229,160,.4)', objectFit: 'cover' }}
-            />
-          ) : (
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%',
-              background: 'linear-gradient(135deg,#00e5a0,#38bdf8)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'JetBrains Mono', fontSize: 20, fontWeight: 700, color: '#000',
-              border: '3px solid rgba(0,229,160,.4)',
-            }}>
-              {user?.username?.slice(0, 2).toUpperCase()}
-            </div>
-          )}
           <div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>
-              Welcome back, <span style={{ color: '#00e5a0' }}>{user?.username}</span>
+            <h2 style={{ 
+              fontSize: 28, 
+              fontWeight: 700, 
+              color: 'var(--text-primary)',
+              marginBottom: 8,
+              letterSpacing: '-0.02em',
+            }}>
+              Welcome back, <span className="gradient-text">{user?.username || 'User'}</span>
             </h2>
-            <p style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: '#566070' }}>
-              {user?.role === 'admin' ? '⚡ Admin — full access' : '👁 Analyst — read-only'}
-              {user?.last_login_at && ` · Last login: ${new Date(user.last_login_at).toLocaleString()}`}
+            <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+              Here's what's happening with your demographic data today.
             </p>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <ThemeToggle />
+            
+            {user?.avatar_url ? (
+              <img src={user.avatar_url} alt={user.username} style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid var(--accent-primary)',
+              }} />
+            ) : (
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: 'var(--accent-gradient)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 16,
+                fontWeight: 600,
+                color: '#fff',
+              }}>
+                {user?.username?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            )}
+            
+            <button 
+              onClick={handleLogout} 
+              className="btn-secondary"
+              style={{
+                padding: '8px 16px',
+                fontSize: 13,
+              }}
+            >
+              Logout
+            </button>
           </div>
         </div>
 
         <StatsGrid stats={stats} />
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #22282f', marginBottom: 24 }}>
-          <button style={tabStyle(tab === 'browse')} onClick={() => setTab('browse')}>Browse Profiles</button>
-          <button style={tabStyle(tab === 'search')} onClick={() => setTab('search')}>NL Search</button>
+        <div style={{ 
+          display: 'flex', 
+          gap: 8, 
+          marginBottom: 32,
+          borderBottom: '1px solid var(--border)',
+        }}>
+          <button 
+            onClick={() => setTab('browse')}
+            style={{
+              padding: '10px 20px',
+              background: 'transparent',
+              border: 'none',
+              color: tab === 'browse' ? 'var(--accent-primary)' : 'var(--text-muted)',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              fontFamily: 'Inter, sans-serif',
+              borderBottom: tab === 'browse' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+              marginBottom: -1,
+            }}
+          >
+            Browse Profiles
+          </button>
+          <button 
+            onClick={() => setTab('search')}
+            style={{
+              padding: '10px 20px',
+              background: 'transparent',
+              border: 'none',
+              color: tab === 'search' ? 'var(--accent-primary)' : 'var(--text-muted)',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              fontFamily: 'Inter, sans-serif',
+              borderBottom: tab === 'search' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+              marginBottom: -1,
+            }}
+          >
+            Natural Language Search
+          </button>
         </div>
 
         {/* Browse tab */}
         {tab === 'browse' && (
           <>
-            <div style={{ fontFamily: 'JetBrains Mono', fontSize: 10, color: '#566070', letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: 14 }}>
-              Filter &amp; Sort
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
-              <select style={inputStyle} value={filters.gender}    onChange={e => handleFilterChange('gender', e.target.value)}>
-                <option value="">Any gender</option><option>male</option><option>female</option>
-              </select>
-              <select style={inputStyle} value={filters.age_group} onChange={e => handleFilterChange('age_group', e.target.value)}>
-                <option value="">Any age group</option><option>child</option><option>teenager</option><option>adult</option><option>senior</option>
-              </select>
-              <input style={{ ...inputStyle, width: 150 }} placeholder="Country (NG, GH…)" value={filters.country_id} onChange={e => handleFilterChange('country_id', e.target.value)} />
-              <input style={{ ...inputStyle, width: 90 }}  placeholder="Min age" type="number" value={filters.min_age} onChange={e => handleFilterChange('min_age', e.target.value)} />
-              <input style={{ ...inputStyle, width: 90 }}  placeholder="Max age" type="number" value={filters.max_age} onChange={e => handleFilterChange('max_age', e.target.value)} />
-              <select style={inputStyle} value={filters.sort_by} onChange={e => handleFilterChange('sort_by', e.target.value)}>
-                <option value="">Sort by…</option><option value="age">Age</option><option value="created_at">Created</option><option value="gender_probability">Gender prob.</option>
-              </select>
-              <select style={inputStyle} value={filters.order} onChange={e => handleFilterChange('order', e.target.value)}>
-                <option value="asc">Asc</option><option value="desc">Desc</option>
-              </select>
-              <button onClick={() => loadProfiles(1)} style={{ background: '#00e5a0', border: 'none', color: '#000', fontFamily: 'JetBrains Mono', fontSize: 12, fontWeight: 600, padding: '8px 18px', borderRadius: 6, cursor: 'pointer' }}>
-                Apply
-              </button>
+            <div className="card" style={{ padding: 24, marginBottom: 32 }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                marginBottom: 20,
+              }}>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Filters</h3>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Refine your profile search</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setFilters({ gender: '', age_group: '', country_id: '', min_age: '', max_age: '', sort_by: '', order: '' });
+                    loadProfiles(1);
+                  }}
+                  className="btn-secondary"
+                  style={{ padding: '6px 14px', fontSize: 12 }}
+                >
+                  Clear all
+                </button>
+              </div>
               
-              <a
-                href={`${API}/api/profiles/export?format=csv&gender=${filters.gender}&country_id=${filters.country_id}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ background: 'transparent', border: '1px solid #22282f', color: '#dde4ee', fontFamily: 'JetBrains Mono', fontSize: 12, fontWeight: 600, padding: '8px 18px', borderRadius: 6, cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center' }}
-              >
-                ↓ Export CSV
-              </a>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 20 }}>
+                <select className="input" value={filters.gender} onChange={e => handleFilterChange('gender', e.target.value)}>
+                  <option value="">All genders</option>
+                  <option>male</option>
+                  <option>female</option>
+                </select>
+
+                <select className="input" value={filters.age_group} onChange={e => handleFilterChange('age_group', e.target.value)}>
+                  <option value="">All age groups</option>
+                  <option>child</option>
+                  <option>teenager</option>
+                  <option>adult</option>
+                  <option>senior</option>
+                </select>
+
+                <input className="input" placeholder="Country code (e.g., NG, US)" value={filters.country_id} onChange={e => handleFilterChange('country_id', e.target.value)} />
+
+                <input className="input" placeholder="Min age" type="number" value={filters.min_age} onChange={e => handleFilterChange('min_age', e.target.value)} />
+
+                <input className="input" placeholder="Max age" type="number" value={filters.max_age} onChange={e => handleFilterChange('max_age', e.target.value)} />
+
+                <select className="input" value={filters.sort_by} onChange={e => handleFilterChange('sort_by', e.target.value)}>
+                  <option value="">Sort by</option>
+                  <option value="age">Age</option>
+                  <option value="created_at">Created date</option>
+                  <option value="gender_probability">Gender probability</option>
+                </select>
+
+                <select className="input" value={filters.order} onChange={e => handleFilterChange('order', e.target.value)}>
+                  <option value="asc">Ascending</option>
+                  <option value="desc">Descending</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button onClick={() => loadProfiles(1)} className="btn-primary">
+                  Apply Filters
+                </button>
+                
+                <a
+                  href={`${API}/api/profiles/export?format=csv${filters.gender ? `&gender=${filters.gender}` : ''}${filters.country_id ? `&country_id=${filters.country_id}` : ''}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-secondary"
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                >
+                  📥 Export CSV
+                </a>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, padding: '0 4px' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                Showing <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{profiles.length}</span> of <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatNumber(meta.total)}</span> profiles
+              </p>
             </div>
 
             <ProfilesTable
@@ -177,6 +360,6 @@ export default function DashboardPage() {
 
         {tab === 'search' && <NlpSearch />}
       </div>
-    </>
+    </div>
   );
 }

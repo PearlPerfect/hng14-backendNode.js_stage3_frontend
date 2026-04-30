@@ -122,7 +122,7 @@ export default function DashboardLayout({ children, user, activeTab, onTabChange
                 gap: 12,
                 padding: sidebarCollapsed ? '12px' : '12px 16px',
                 marginBottom: 8,
-                background: activeTab === item.id ? 'var(--accent-light)' : 'transparent',
+                background: activeTab === item.id ? '#000000' : 'transparent',
                 border: 'none',
                 borderRadius: 8,
                 color: activeTab === item.id ? 'var(--accent)' : 'var(--text-secondary)',

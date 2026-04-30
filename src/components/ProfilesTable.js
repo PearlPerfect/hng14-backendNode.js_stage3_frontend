@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import ProfileModal from './ProfileModal';
 import Pagination from './Pagination';
+import { deleteProfile } from '@/lib/api';
 
 function GenderBadge({ gender }) {
   const style = gender === 'male'
@@ -26,6 +27,7 @@ export default function ProfilesTable({ data, page, totalPages, total, limit, on
   const [selected, setSelected] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   if (!data?.length) {
     return <div style={{ textAlign: 'center', padding: 48, fontFamily: 'JetBrains Mono', fontSize: 13, color: 'var(--text-secondary)' }}>No profiles found.</div>;
@@ -39,6 +41,25 @@ export default function ProfilesTable({ data, page, totalPages, total, limit, on
     e.stopPropagation();
     setEditingProfile(profile);
     setShowEditModal(true);
+  };
+
+  const handleDelete = async (profile, e) => {
+    e.stopPropagation();
+    if (confirm(`Are you sure you want to delete "${profile.name}"? This action cannot be undone.`)) {
+      setDeletingId(profile.id);
+      try {
+        const result = await deleteProfile(profile.id);
+        if (result) {
+          // Refresh the current page
+          onPageChange(page);
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        alert('Failed to delete profile');
+      } finally {
+        setDeletingId(null);
+      }
+    }
   };
 
   const handleCloseEdit = () => {
@@ -57,20 +78,36 @@ export default function ProfilesTable({ data, page, totalPages, total, limit, on
     }
   };
 
+  // Dynamically import EditProfileModal to avoid circular dependencies
+  const [EditModal, setEditModal] = useState(null);
+  useState(() => {
+    import('./EditProfileModal').then(module => {
+      setEditModal(() => module.default);
+    });
+  }, []);
+
   return (
     <>
       <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
-            <tr>
-              {['Name', 'Gender', 'Age', 'Age Group', 'Country', 'Country Name', 'G. Prob.', 'Actions'].map(h => (
+            <tr style={{ background: 'var(--bg-secondary)' }}>
+              {['Name', 'Gender', 'Age', 'Age Group', 'Country', 'Country Name', 'G. Prob.'].map(h => (
                 <th key={h} style={{
                   textAlign: 'left', padding: '12px 14px',
-                  background: 'var(--bg-secondary)', fontFamily: 'JetBrains Mono',
+                  fontFamily: 'JetBrains Mono',
                   fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '.08em',
                   textTransform: 'uppercase', borderBottom: '1px solid var(--border)',
                 }}>{h}</th>
               ))}
+              {userRole === 'admin' && (
+                <th style={{
+                  textAlign: 'left', padding: '12px 14px',
+                  fontFamily: 'JetBrains Mono',
+                  fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '.08em',
+                  textTransform: 'uppercase', borderBottom: '1px solid var(--border)',
+                }}>Actions</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -89,28 +126,58 @@ export default function ProfilesTable({ data, page, totalPages, total, limit, on
                 <td style={{ padding: '11px 14px', borderBottom: '1px solid var(--border)', fontFamily: 'JetBrains Mono', color: '#38bdf8' }}>{p.country_id}</td>
                 <td style={{ padding: '11px 14px', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>{p.country_name || '—'}</td>
                 <td style={{ padding: '11px 14px', borderBottom: '1px solid var(--border)', fontFamily: 'JetBrains Mono', color: 'var(--text-secondary)' }}>{((p.gender_probability || 0) * 100).toFixed(0)}%</td>
-                <td style={{ padding: '11px 14px', borderBottom: '1px solid var(--border)' }}>
-                  {userRole === 'admin' && (
-                    <button
-                      onClick={(e) => handleEdit(p, e)}
-                      style={{
-                        padding: '4px 12px',
-                        background: 'var(--accent)',
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: '#000',
-                        transition: 'all 0.2s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                    >
-                      Edit
-                    </button>
-                  )}
-                </td>
+                {userRole === 'admin' && (
+                  <td style={{ padding: '11px 14px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={(e) => handleEdit(p, e)}
+                        style={{
+                          padding: '4px 12px',
+                          background: 'var(--accent)',
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#000',
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(p, e)}
+                        disabled={deletingId === p.id}
+                        style={{
+                          padding: '4px 12px',
+                          background: 'var(--danger)',
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: deletingId === p.id ? 'not-allowed' : 'pointer',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: '#fff',
+                          transition: 'all 0.2s',
+                          opacity: deletingId === p.id ? 0.7 : 1,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (deletingId !== p.id) {
+                            e.currentTarget.style.opacity = '0.8';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (deletingId !== p.id) {
+                            e.currentTarget.style.opacity = '1';
+                          }
+                        }}
+                      >
+                        {deletingId === p.id ? '...' : 'Delete'}
+                      </button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -126,8 +193,8 @@ export default function ProfilesTable({ data, page, totalPages, total, limit, on
         onEdit={handleEdit}
       />
       
-      {showEditModal && editingProfile && (
-        <EditProfileModal
+      {showEditModal && editingProfile && EditModal && (
+        <EditModal
           profile={editingProfile}
           onClose={handleCloseEdit}
           onSave={handleSaveEdit}

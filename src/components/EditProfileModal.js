@@ -16,7 +16,7 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
   const ageGroups = ['child', 'teenager', 'adult', 'senior'];
   const genders = ['male', 'female'];
   const countries = [
-    'NG', 'GH', 'KE', 'ZA', 'EG', 'MA', 'NG', 'TZ', 'UG', 'AO',
+    'NG', 'GH', 'KE', 'ZA', 'EG', 'MA', 'TZ', 'UG', 'AO',
     'CM', 'CI', 'ZM', 'SN', 'ML', 'RW', 'BJ', 'NE', 'BF', 'GW'
   ];
 
@@ -26,14 +26,20 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
     setError('');
     
     try {
-      const updated = await updateProfile(profile.id, formData);
-      if (updated && updated.data) {
-        onSave(updated.data);
+      const response = await updateProfile(profile.id, formData);
+      console.log('Update response:', response);
+      
+      if (response && response.data) {
+        onSave(response.data);
+      } else if (response && response.status === 'success') {
+        // If response doesn't have data but was successful, pass the form data
+        onSave({ ...profile, ...formData });
       } else {
-        setError('Failed to update profile');
+        setError('Failed to update profile: Invalid response from server');
       }
     } catch (err) {
-      setError(err.message || 'An error occurred');
+      console.error('Update error:', err);
+      setError(err.message || 'An error occurred while updating');
     } finally {
       setLoading(false);
     }
@@ -153,7 +159,7 @@ export default function EditProfileModal({ profile, onClose, onSave }) {
               type="number"
               required
               value={formData.age}
-              onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) })}
+              onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) || '' })}
               style={inputStyle}
               min="0"
               max="120"

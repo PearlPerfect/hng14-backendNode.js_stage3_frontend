@@ -1,10 +1,11 @@
 'use client';
 
-export default function ProfileModal({ profile, onClose }) {
+export default function ProfileModal({ profile, onClose, userRole, onEdit }) {
   if (!profile) return null;
 
   const fields = [
     ['ID', profile.id],
+    ['Name', profile.name],
     ['Gender', profile.gender],
     ['Age', profile.age],
     ['Age Group', profile.age_group],
@@ -25,22 +26,47 @@ export default function ProfileModal({ profile, onClose }) {
       }}
     >
       <div style={{
-        background: '#131619', border: '1px solid #22282f',
-        borderRadius: 12, padding: 32, maxWidth: 480, width: '100%', position: 'relative',
+        background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+        borderRadius: 12, padding: 32, maxWidth: 550, width: '100%', position: 'relative',
       }}>
         <button
           onClick={onClose}
           style={{
             position: 'absolute', top: 16, right: 16,
-            background: 'none', border: 'none', color: '#566070', fontSize: 18, cursor: 'pointer',
+            background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 18, cursor: 'pointer',
           }}
         >✕</button>
-        <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 20 }}>{profile.name}</h3>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 800 }}>{profile.name}</h3>
+          {userRole === 'admin' && onEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+                onEdit(profile, e);
+              }}
+              style={{
+                padding: '6px 16px',
+                background: 'var(--accent)',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#000',
+              }}
+            >
+              Edit Profile
+            </button>
+          )}
+        </div>
+        
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {fields.map(([k, v]) => (
             <div key={k}>
-              <div style={{ fontFamily: 'JetBrains Mono', fontSize: 10, color: '#566070', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 3 }}>{k}</div>
-              <div style={{ fontFamily: 'JetBrains Mono', fontSize: 13 }}>{v}</div>
+              <div style={{ fontFamily: 'JetBrains Mono', fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 3 }}>{k}</div>
+              <div style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: 'var(--text-primary)' }}>{v}</div>
             </div>
           ))}
         </div>

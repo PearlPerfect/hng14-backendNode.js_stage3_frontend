@@ -91,6 +91,33 @@ export default function DashboardPage() {
     setFilters(f => ({ ...f, [key]: val }));
   }
 
+  const handleProfileUpdate = async (updatedProfile) => {
+    // Update the profile in the local state
+    setProfiles(prev => prev.map(p => 
+      p.id === updatedProfile.id ? updatedProfile : p
+    ));
+    
+    // Refresh stats if age group or gender changed
+    if (updatedProfile.age_group || updatedProfile.gender) {
+      // Refresh stats without full page reload
+      const [total, male, female, adult, senior] = await Promise.all([
+        getProfiles({ limit: 1 }),
+        getProfiles({ gender: 'male', limit: 1 }),
+        getProfiles({ gender: 'female', limit: 1 }),
+        getProfiles({ age_group: 'adult', limit: 1 }),
+        getProfiles({ age_group: 'senior', limit: 1 }),
+      ]);
+
+      setStats({
+        total: total?.total || 0,
+        male: male?.total || 0,
+        female: female?.total || 0,
+        adult: adult?.total || 0,
+        senior: senior?.total || 0,
+      });
+    }
+  };
+
   const renderContent = () => {
     switch(activeTab) {
       case 'browse':
@@ -182,11 +209,13 @@ export default function DashboardPage() {
               total={meta.total}
               limit={meta.limit}
               onPageChange={loadProfiles}
+              userRole={user?.role}
+              onProfileUpdate={handleProfileUpdate}
             />
           </>
         );
       case 'search':
-        return <NlpSearch />;
+        return <NlpSearch userRole={user?.role} />;
       case 'users':
         return user?.role === 'admin' ? <UserManagement /> : <div style={{ textAlign: 'center', padding: 48 }}>Access denied. Admin only.</div>;
       default:

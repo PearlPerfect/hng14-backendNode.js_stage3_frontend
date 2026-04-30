@@ -177,6 +177,19 @@ export async function updateUser(id, userData) {
     return null;
   }
 }
+export async function updateProfile(id, profileData) {
+  try {
+    const res = await apiFetch(`/api/profiles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+    if (!res) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return null;
+  }
+}
 
 export async function deleteUser(id) {
   try {

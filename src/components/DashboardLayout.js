@@ -71,7 +71,7 @@ export default function DashboardLayout({ children, user, activeTab, onTabChange
                 fontWeight: 700,
                 color: '#000',
               }}>IL</div>
-              <span style={{ fontSize: 16, fontWeight: 800 }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>
                 Insighta <span style={{ color: 'var(--accent)' }}>Labs+</span>
               </span>
             </div>
@@ -100,7 +100,10 @@ export default function DashboardLayout({ children, user, activeTab, onTabChange
               cursor: 'pointer',
               fontSize: 18,
               padding: 4,
+              transition: 'color 0.2s',
             }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
           >
             {sidebarCollapsed ? '→' : '←'}
           </button>
@@ -132,11 +135,13 @@ export default function DashboardLayout({ children, user, activeTab, onTabChange
               onMouseEnter={(e) => {
                 if (activeTab !== item.id) {
                   e.currentTarget.style.background = 'var(--bg-hover)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
                 }
               }}
               onMouseLeave={(e) => {
                 if (activeTab !== item.id) {
                   e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
                 }
               }}
             >
@@ -187,7 +192,7 @@ export default function DashboardLayout({ children, user, activeTab, onTabChange
                 </div>
               )}
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>@{user.username}</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>@{user.username}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{user.role}</div>
               </div>
             </div>
@@ -213,6 +218,14 @@ export default function DashboardLayout({ children, user, activeTab, onTabChange
                 justifyContent: 'center',
                 gap: 8,
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--danger)';
+                e.currentTarget.style.color = '#fff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--danger)';
+              }}
             >
               <span>🚪</span>
               {!sidebarCollapsed && 'Logout'}
@@ -237,11 +250,11 @@ export default function DashboardLayout({ children, user, activeTab, onTabChange
           marginBottom: 32,
           border: '1px solid var(--border)',
         }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>
             Welcome back, <span style={{ color: 'var(--accent)' }}>{user?.username}</span>
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
-            {user?.role === 'admin' ? '⚡ Admin — Full access to user management' : '👁 Analyst — Read-only access'}
+            {user?.role === 'admin' ? '⚡ Admin — Full access to user management and profile editing' : '👁 Analyst — Read-only access'}
           </p>
         </div>
 

@@ -13,8 +13,10 @@ function LoginContent() {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
+    // Set redirect URL only on client side to avoid hydration mismatch
     setRedirectUrl(`${API}/auth/github?redirect_uri=${encodeURIComponent(window.location.origin + '/login')}`);
     
+    // Handle OAuth callback tokens in URL (from backend redirect)
     const access = searchParams.get('access_token');
     const refresh = searchParams.get('refresh_token');
     const username = searchParams.get('username');
@@ -34,104 +36,53 @@ function LoginContent() {
     setIsRedirecting(true);
   };
 
+  // Spinner component
   const Spinner = () => (
-    <svg 
-      width="18" 
-      height="18" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-      style={{
-        animation: 'spin 0.6s linear infinite',
-      }}
-    >
-      <style>
-        {`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}
-      </style>
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25"/>
-      <path d="M12 2 C6.477 2 2 6.477 2 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    </svg>
+    <div style={{
+      display: 'inline-block',
+      width: '18px',
+      height: '18px',
+      border: '2px solid rgba(0,0,0,0.1)',
+      borderTopColor: '#000',
+      borderRadius: '50%',
+      animation: 'spin 0.6s linear infinite',
+    }} />
   );
+
+  // Add keyframes for spinner animation
+  if (typeof window !== 'undefined') {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `;
+    if (!document.head.querySelector('#spinner-keyframes')) {
+      style.id = 'spinner-keyframes';
+      document.head.appendChild(style);
+    }
+  }
 
   return (
     <div style={{
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center',
-      justifyContent: 'center', 
-      background: '#0a0c10',
-      position: 'relative',
-      overflow: 'hidden',
+      minHeight: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', background: '#0b0d0f',
     }}>
-      {/* Animated background elements */}
       <div style={{
-        position: 'absolute',
-        width: '400px',
-        height: '400px',
-        background: 'radial-gradient(circle, rgba(6,182,212,0.15) 0%, transparent 70%)',
-        top: '-200px',
-        right: '-200px',
-        borderRadius: '50%',
-      }} />
-      <div style={{
-        position: 'absolute',
-        width: '500px',
-        height: '500px',
-        background: 'radial-gradient(circle, rgba(34,211,238,0.1) 0%, transparent 70%)',
-        bottom: '-250px',
-        left: '-250px',
-        borderRadius: '50%',
-      }} />
-
-      <div style={{
-        background: '#1a2332',
-        borderRadius: 24,
-        padding: '52px 44px',
-        textAlign: 'center',
-        maxWidth: 440,
-        width: '100%',
-        border: '1px solid #374151',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        background: '#131619', border: '1px solid #22282f',
+        borderRadius: 12, padding: '48px 40px', textAlign: 'center',
+        maxWidth: 400, width: '100%',
       }}>
         <div style={{
-          width: 56,
-          height: 56,
-          background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
-          borderRadius: 16,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 24px',
-          fontFamily: 'Fira Code, monospace',
-          fontSize: 20,
-          fontWeight: 700,
-          color: '#fff',
-          boxShadow: '0 8px 20px rgba(6, 182, 212, 0.3)',
-        }}>
-          IL
-        </div>
+          width: 48, height: 48, background: '#00e5a0', borderRadius: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 20px', fontFamily: 'JetBrains Mono', fontSize: 16, fontWeight: 700, color: '#000',
+        }}>IL</div>
 
-        <h1 style={{ 
-          fontSize: 32, 
-          fontWeight: 700, 
-          marginBottom: 12,
-          background: 'linear-gradient(135deg, #06b6d4, #22d3ee)',
-          WebkitBackgroundClip: 'text',
-          backgroundClip: 'text',
-          color: 'transparent',
-        }}>
-          Insighta Labs+
+        <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
+          Insighta <span style={{ color: '#00e5a0' }}>Labs+</span>
         </h1>
-        <p style={{ 
-          fontFamily: 'Inter, sans-serif', 
-          fontSize: 13, 
-          color: '#6b7280', 
-          marginBottom: 36,
-        }}>
+        <p style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: '#566070', marginBottom: 32 }}>
           Demographic intelligence platform
         </p>
 
@@ -139,37 +90,28 @@ function LoginContent() {
           href={redirectUrl || '#'}
           onClick={handleGitHubLogin}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
-            border: 'none',
-            borderRadius: 10,
-            padding: '14px 28px',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: 15,
-            textDecoration: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            background: '#fff', color: '#000', fontWeight: 600, fontSize: 15,
+            padding: '13px 24px', borderRadius: 8, textDecoration: 'none',
+            transition: 'opacity .2s',
             cursor: redirectUrl && !isRedirecting ? 'pointer' : 'default',
             opacity: redirectUrl && !isRedirecting ? 1 : 0.7,
-            transition: 'all 0.2s',
           }}
           onMouseEnter={e => {
             if (!isRedirecting && redirectUrl) {
-              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.opacity = '.85';
             }
           }}
           onMouseLeave={e => {
             if (!isRedirecting && redirectUrl) {
-              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.opacity = '1';
             }
           }}
         >
           {isRedirecting ? (
             <>
               <Spinner />
-              <span>Redirecting...</span>
+              <span>Redirecting to GitHub...</span>
             </>
           ) : (
             <>
@@ -193,8 +135,9 @@ export default function LoginPage() {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        background: '#0a0c10',
-        color: '#06b6d4',
+        background: '#0b0d0f',
+        color: '#00e5a0',
+        fontFamily: 'JetBrains Mono'
       }}>
         Loading...
       </div>

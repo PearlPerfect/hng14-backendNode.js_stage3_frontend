@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { saveTokens, isLoggedIn } from '@/lib/auth';
 import { Suspense } from 'react';
-import ThemeToggle from '@/components/ThemeToggle';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -64,21 +63,16 @@ function LoginContent() {
       display: 'flex', 
       alignItems: 'center',
       justifyContent: 'center', 
-      background: 'var(--bg-primary)',
+      background: '#0a0c10',
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Theme Toggle Positioned */}
-      <div style={{ position: 'absolute', top: 20, right: 20 }}>
-        <ThemeToggle />
-      </div>
-
       {/* Animated background elements */}
       <div style={{
         position: 'absolute',
         width: '400px',
         height: '400px',
-        background: `radial-gradient(circle, rgba(6,182,212,0.15) 0%, transparent 70%)`,
+        background: 'radial-gradient(circle, rgba(6,182,212,0.15) 0%, transparent 70%)',
         top: '-200px',
         right: '-200px',
         borderRadius: '50%',
@@ -87,23 +81,26 @@ function LoginContent() {
         position: 'absolute',
         width: '500px',
         height: '500px',
-        background: `radial-gradient(circle, rgba(34,211,238,0.1) 0%, transparent 70%)`,
+        background: 'radial-gradient(circle, rgba(34,211,238,0.1) 0%, transparent 70%)',
         bottom: '-250px',
         left: '-250px',
         borderRadius: '50%',
       }} />
 
-      <div className="card" style={{
+      <div style={{
+        background: '#1a2332',
+        borderRadius: 24,
         padding: '52px 44px',
         textAlign: 'center',
         maxWidth: 440,
         width: '100%',
+        border: '1px solid #374151',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
       }}>
         <div style={{
           width: 56,
           height: 56,
-          background: 'var(--accent-gradient)',
+          background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
           borderRadius: 16,
           display: 'flex',
           alignItems: 'center',
@@ -122,13 +119,17 @@ function LoginContent() {
           fontSize: 32, 
           fontWeight: 700, 
           marginBottom: 12,
-        }} className="gradient-text">
+          background: 'linear-gradient(135deg, #06b6d4, #22d3ee)',
+          WebkitBackgroundClip: 'text',
+          backgroundClip: 'text',
+          color: 'transparent',
+        }}>
           Insighta Labs+
         </h1>
         <p style={{ 
           fontFamily: 'Inter, sans-serif', 
           fontSize: 13, 
-          color: 'var(--text-muted)', 
+          color: '#6b7280', 
           marginBottom: 36,
         }}>
           Demographic intelligence platform
@@ -137,15 +138,32 @@ function LoginContent() {
         <a
           href={redirectUrl || '#'}
           onClick={handleGitHubLogin}
-          className="btn-primary"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: 12,
+            background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+            border: 'none',
+            borderRadius: 10,
+            padding: '14px 28px',
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: 15,
             textDecoration: 'none',
             cursor: redirectUrl && !isRedirecting ? 'pointer' : 'default',
             opacity: redirectUrl && !isRedirecting ? 1 : 0.7,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => {
+            if (!isRedirecting && redirectUrl) {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }
+          }}
+          onMouseLeave={e => {
+            if (!isRedirecting && redirectUrl) {
+              e.currentTarget.style.transform = 'translateY(0)';
+            }
           }}
         >
           {isRedirecting ? (
@@ -175,8 +193,8 @@ export default function LoginPage() {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        background: 'var(--bg-primary)',
-        color: 'var(--accent-primary)',
+        background: '#0a0c10',
+        color: '#06b6d4',
       }}>
         Loading...
       </div>

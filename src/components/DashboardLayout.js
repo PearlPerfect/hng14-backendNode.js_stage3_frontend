@@ -8,7 +8,7 @@ import ThemeToggle from './ThemeToggle';
 const navItems = [
   { id: 'browse', label: 'Browse Profiles', icon: '👥' },
   { id: 'search', label: 'NL Search', icon: '🔍' },
-  { id: 'users', label: 'User Management', icon: '👤', adminOnly: true },
+  { id: 'profiles', label: 'Profile Management', icon: '📝', adminOnly: true },
 ];
 
 export default function DashboardLayout({ children, user, activeTab, onTabChange }) {
@@ -151,9 +151,27 @@ export default function DashboardLayout({ children, user, activeTab, onTabChange
           ))}
         </nav>
 
-        {/* User section */}
+        {/* Theme Toggle - Separate section */}
         <div style={{
-          padding: sidebarCollapsed ? '16px' : '20px',
+          padding: sidebarCollapsed ? '12px' : '16px 20px',
+          borderTop: '1px solid var(--border)',
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+            alignItems: 'center',
+            marginBottom: 12
+          }}>
+            {!sidebarCollapsed && (
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Appearance</span>
+            )}
+            <ThemeToggle />
+          </div>
+        </div>
+
+        {/* User Info & Logout - Separate section */}
+        <div style={{
+          padding: sidebarCollapsed ? '12px' : '16px 20px',
           borderTop: '1px solid var(--border)',
         }}>
           {!sidebarCollapsed && user && (
@@ -198,39 +216,36 @@ export default function DashboardLayout({ children, user, activeTab, onTabChange
             </div>
           )}
           
-          <div style={{ display: 'flex', gap: 8, justifyContent: sidebarCollapsed ? 'center' : 'stretch' }}>
-            <ThemeToggle />
-            <button
-              onClick={handleLogout}
-              style={{
-                flex: !sidebarCollapsed ? 1 : 'auto',
-                padding: sidebarCollapsed ? '10px' : '10px 16px',
-                background: 'transparent',
-                border: '1px solid var(--danger)',
-                borderRadius: 8,
-                color: 'var(--danger)',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--danger)';
-                e.currentTarget.style.color = '#fff';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'var(--danger)';
-              }}
-            >
-              <span>🚪</span>
-              {!sidebarCollapsed && 'Logout'}
-            </button>
-          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              width: sidebarCollapsed ? 'auto' : '100%',
+              padding: sidebarCollapsed ? '10px' : '10px 16px',
+              background: 'transparent',
+              border: '1px solid var(--danger)',
+              borderRadius: 8,
+              color: 'var(--danger)',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--danger)';
+              e.currentTarget.style.color = '#fff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--danger)';
+            }}
+          >
+            <span>🚪</span>
+            {!sidebarCollapsed && 'Logout'}
+          </button>
         </div>
       </aside>
 
@@ -254,7 +269,7 @@ export default function DashboardLayout({ children, user, activeTab, onTabChange
             Welcome back, <span style={{ color: 'var(--accent)' }}>{user?.username}</span>
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
-            {user?.role === 'admin' ? '⚡ Admin — Full access to user management and profile editing' : '👁 Analyst — Read-only access'}
+            {user?.role === 'admin' ? '⚡ Admin — Full access to profile management and editing' : '👁 Analyst — Read-only access'}
           </p>
         </div>
 

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { getProfiles, createProfile, deleteProfile } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 
-export default function ProfileManagement({ userRole, onProfileUpdate }) {
+export default function ProfileManagement({ userRole, onProfileUpdate, onStatsUpdate }) {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -35,6 +35,13 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
     }
   }
 
+  async function refreshStats() {
+    // Call the parent's stats update function
+    if (onStatsUpdate) {
+      await onStatsUpdate();
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!formData.name.trim()) {
@@ -46,19 +53,16 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
     let loadingToastId = null;
     
     try {
-      // Show loading toast
       loadingToastId = toast.loading('Creating profile...');
       
       const result = await createProfile(formData.name);
       console.log('Create profile result:', result);
       
-      // Dismiss loading toast immediately
       toast.dismiss(loadingToastId);
       
       if (result && (result.data || result.status === 'success')) {
         const newProfile = result.data || result;
         
-        // Show success message with profile details 
         toast.success(
           `✅ Profile Created Successfully!\n\n` +
           `📝 Name: ${newProfile.name}\n` +
@@ -77,6 +81,10 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
         setShowModal(false);
         setFormData({ name: '' });
         await loadProfiles();
+        
+        // Update stats immediately
+        await refreshStats();
+        
         if (onProfileUpdate) {
           onProfileUpdate(result.data);
         }
@@ -103,6 +111,9 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
         toast.dismiss(loadingToastId);
         toast.success(`Profile "${profileName}" deleted successfully`, { duration: 3000 });
         await loadProfiles();
+        
+        // Update stats immediately
+        await refreshStats();
       } catch (error) {
         console.error('Error deleting profile:', error);
         toast.dismiss(loadingToastId);

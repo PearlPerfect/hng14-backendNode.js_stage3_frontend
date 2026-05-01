@@ -43,23 +43,35 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
     }
     
     setSubmitting(true);
-    const loadingToast = toast.loading('Creating profile...');
+    let loadingToastId = null;
     
     try {
+      // Show loading toast
+      loadingToastId = toast.loading('Creating profile...');
+      
       const result = await createProfile(formData.name);
       console.log('Create profile result:', result);
+      
+      // Dismiss loading toast immediately
+      toast.dismiss(loadingToastId);
       
       if (result && (result.data || result.status === 'success')) {
         const newProfile = result.data || result;
         
-        // Success message with profile details
+        // Show success message with profile details 
         toast.success(
-          `✅ Profile created successfully!\n\n` +
-          `Name: ${newProfile.name}\n` +
-          `Gender: ${newProfile.gender || 'N/A'}\n` +
-          `Age: ${newProfile.age || 'N/A'}\n` +
-          `Country: ${newProfile.country_id || 'N/A'}`,
-          { duration: 6000 }
+          `✅ Profile Created Successfully!\n\n` +
+          `📝 Name: ${newProfile.name}\n` +
+          `🚻 Gender: ${newProfile.gender || 'N/A'}\n` +
+          `🎂 Age: ${newProfile.age || 'N/A'}\n` +
+          `🌍 Country: ${newProfile.country_id || 'N/A'}`,
+          { 
+            duration: 5000,
+            style: {
+              whiteSpace: 'pre-line',
+              maxWidth: 400,
+            }
+          }
         );
         
         setShowModal(false);
@@ -73,26 +85,28 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
       }
     } catch (error) {
       console.error('Error creating profile:', error);
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+      }
       toast.error('Failed to create profile: ' + (error.message || 'Unknown error'));
     } finally {
-      toast.dismiss(loadingToast);
       setSubmitting(false);
     }
   }
 
   async function handleDeleteProfile(id, profileName) {
     if (confirm(`Are you sure you want to delete "${profileName}"? This action cannot be undone.`)) {
-      const loadingToast = toast.loading('Deleting profile...');
+      const loadingToastId = toast.loading('Deleting profile...');
       
       try {
         await deleteProfile(id);
-        toast.success(`Profile "${profileName}" deleted successfully`);
+        toast.dismiss(loadingToastId);
+        toast.success(`Profile "${profileName}" deleted successfully`, { duration: 3000 });
         await loadProfiles();
       } catch (error) {
         console.error('Error deleting profile:', error);
+        toast.dismiss(loadingToastId);
         toast.error('Failed to delete profile');
-      } finally {
-        toast.dismiss(loadingToast);
       }
     }
   }
@@ -144,14 +158,12 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
       <Toaster 
         position="top-right"
         toastOptions={{
-          duration: 4000,
           style: {
             background: 'var(--bg-secondary)',
             color: 'var(--text-primary)',
             border: '1px solid var(--border)',
             fontFamily: 'JetBrains Mono',
             fontSize: 13,
-            whiteSpace: 'pre-line',
           },
           success: {
             iconTheme: {
@@ -165,6 +177,7 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
               primary: 'var(--danger)',
               secondary: '#fff',
             },
+            duration: 4000,
           },
         }}
       />
@@ -362,6 +375,7 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
                   style={inputStyle}
                   placeholder="e.g., John Doe, Mary Smith"
                   autoFocus
+                  disabled={submitting}
                 />
               </div>
 
@@ -369,15 +383,17 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
                 <button 
                   type="button" 
                   onClick={() => setShowModal(false)} 
+                  disabled={submitting}
                   style={{
                     padding: '10px 20px',
                     background: 'transparent',
                     border: '1px solid var(--border)',
                     borderRadius: 8,
-                    cursor: 'pointer',
+                    cursor: submitting ? 'not-allowed' : 'pointer',
                     color: 'var(--text-primary)',
                     fontSize: 12,
                     fontWeight: 600,
+                    opacity: submitting ? 0.5 : 1,
                   }}
                 >
                   Cancel
@@ -395,9 +411,26 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
                     fontSize: 12,
                     fontWeight: 600,
                     opacity: submitting ? 0.7 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
                   }}
                 >
-                  {submitting ? 'Creating...' : 'Create Profile'}
+                  {submitting ? (
+                    <>
+                      <div style={{
+                        width: 16,
+                        height: 16,
+                        border: '2px solid rgba(0,0,0,0.2)',
+                        borderTopColor: '#000',
+                        borderRadius: '50%',
+                        animation: 'spin 0.6s linear infinite',
+                      }} />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Profile'
+                  )}
                 </button>
               </div>
             </form>

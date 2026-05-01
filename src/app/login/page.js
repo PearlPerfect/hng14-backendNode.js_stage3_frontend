@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { saveTokens, isLoggedIn } from '@/lib/auth';
 import { Suspense } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -13,27 +14,41 @@ function LoginContent() {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    // Set redirect URL only on client side to avoid hydration mismatch
+    // Set redirect URL only on client side
     setRedirectUrl(`${API}/auth/github?redirect_uri=${encodeURIComponent(window.location.origin + '/login')}`);
     
-    // Handle OAuth callback tokens in URL (from backend redirect)
+    // Handle OAuth callback tokens in URL
     const access = searchParams.get('access_token');
     const refresh = searchParams.get('refresh_token');
     const username = searchParams.get('username');
-    if (access && refresh) {
-      saveTokens({ accessToken: access, refreshToken: refresh, username });
-      router.replace('/dashboard');
+    const error = searchParams.get('error');
+    
+    if (error) {
+      toast.error(`Login failed: ${error}`);
       return;
     }
-    if (isLoggedIn()) router.replace('/dashboard');
+    
+    if (access && refresh) {
+      saveTokens({ accessToken: access, refreshToken: refresh, username });
+      toast.success(`Welcome back, ${username || 'User'}! Login successful.`);
+      setTimeout(() => {
+        router.replace('/dashboard');
+      }, 1500);
+      return;
+    }
+    if (isLoggedIn()) {
+      router.replace('/dashboard');
+    }
   }, [searchParams, router, API]);
 
   const handleGitHubLogin = (e) => {
     if (!redirectUrl || redirectUrl === '#') {
       e.preventDefault();
+      toast.error('Unable to initiate login. Please try again.');
       return;
     }
     setIsRedirecting(true);
+    toast.loading('Redirecting to GitHub...');
   };
 
   // Spinner component
@@ -66,23 +81,48 @@ function LoginContent() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', background: '#0b0d0f',
+      justifyContent: 'center', background: 'var(--bg-primary)',
     }}>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+            fontFamily: 'JetBrains Mono',
+            fontSize: 13,
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--accent)',
+              secondary: '#000',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'var(--danger)',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <div style={{
-        background: '#131619', border: '1px solid #22282f',
+        background: 'var(--bg-secondary)', border: '1px solid var(--border)',
         borderRadius: 12, padding: '48px 40px', textAlign: 'center',
         maxWidth: 400, width: '100%',
       }}>
         <div style={{
-          width: 48, height: 48, background: '#00e5a0', borderRadius: 10,
+          width: 48, height: 48, background: 'var(--accent)', borderRadius: 10,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 20px', fontFamily: 'JetBrains Mono', fontSize: 16, fontWeight: 700, color: '#000',
         }}>IL</div>
 
         <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
-          Insighta <span style={{ color: '#00e5a0' }}>Labs+</span>
+          Insighta <span style={{ color: 'var(--accent)' }}>Labs+</span>
         </h1>
-        <p style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: '#566070', marginBottom: 32 }}>
+        <p style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 32 }}>
           Demographic intelligence platform
         </p>
 
@@ -135,8 +175,8 @@ export default function LoginPage() {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        background: '#0b0d0f',
-        color: '#00e5a0',
+        background: 'var(--bg-primary)',
+        color: 'var(--accent)',
         fontFamily: 'JetBrains Mono'
       }}>
         Loading...

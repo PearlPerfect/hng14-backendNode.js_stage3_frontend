@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { getProfiles, createProfile, deleteProfile } from '@/lib/api';
-import ProfilesTable from './ProfilesTable';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function ProfileManagement({ userRole, onProfileUpdate }) {
   const [profiles, setProfiles] = useState([]);
@@ -29,6 +29,7 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
       });
     } catch (error) {
       console.error('Error loading profiles:', error);
+      toast.error('Failed to load profiles');
     } finally {
       setLoading(false);
     }
@@ -37,16 +38,30 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert('Please enter a name');
+      toast.error('Please enter a name');
       return;
     }
     
     setSubmitting(true);
+    const loadingToast = toast.loading('Creating profile...');
+    
     try {
       const result = await createProfile(formData.name);
       console.log('Create profile result:', result);
       
       if (result && (result.data || result.status === 'success')) {
+        const newProfile = result.data || result;
+        
+        // Success message with profile details
+        toast.success(
+          `✅ Profile created successfully!\n\n` +
+          `Name: ${newProfile.name}\n` +
+          `Gender: ${newProfile.gender || 'N/A'}\n` +
+          `Age: ${newProfile.age || 'N/A'}\n` +
+          `Country: ${newProfile.country_id || 'N/A'}`,
+          { duration: 6000 }
+        );
+        
         setShowModal(false);
         setFormData({ name: '' });
         await loadProfiles();
@@ -54,24 +69,30 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
           onProfileUpdate(result.data);
         }
       } else {
-        alert('Failed to create profile');
+        toast.error('Failed to create profile. Please try again.');
       }
     } catch (error) {
       console.error('Error creating profile:', error);
-      alert('Failed to create profile: ' + (error.message || 'Unknown error'));
+      toast.error('Failed to create profile: ' + (error.message || 'Unknown error'));
     } finally {
+      toast.dismiss(loadingToast);
       setSubmitting(false);
     }
   }
 
-  async function handleDeleteProfile(id) {
-    if (confirm('Are you sure you want to delete this profile? This action cannot be undone.')) {
+  async function handleDeleteProfile(id, profileName) {
+    if (confirm(`Are you sure you want to delete "${profileName}"? This action cannot be undone.`)) {
+      const loadingToast = toast.loading('Deleting profile...');
+      
       try {
         await deleteProfile(id);
+        toast.success(`Profile "${profileName}" deleted successfully`);
         await loadProfiles();
       } catch (error) {
         console.error('Error deleting profile:', error);
-        alert('Failed to delete profile');
+        toast.error('Failed to delete profile');
+      } finally {
+        toast.dismiss(loadingToast);
       }
     }
   }
@@ -120,6 +141,34 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
 
   return (
     <div>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+            fontFamily: 'JetBrains Mono',
+            fontSize: 13,
+            whiteSpace: 'pre-line',
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--accent)',
+              secondary: '#000',
+            },
+            duration: 5000,
+          },
+          error: {
+            iconTheme: {
+              primary: 'var(--danger)',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Profile Management</h2>
@@ -202,7 +251,7 @@ export default function ProfileManagement({ userRole, onProfileUpdate }) {
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <button 
-                        onClick={() => handleDeleteProfile(profile.id)} 
+                        onClick={() => handleDeleteProfile(profile.id, profile.name)} 
                         style={{
                           padding: '6px 12px',
                           background: 'var(--danger)',

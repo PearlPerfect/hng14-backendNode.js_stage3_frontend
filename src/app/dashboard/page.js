@@ -8,6 +8,7 @@ import StatsGrid from '@/components/StatsGrid';
 import ProfilesTable from '@/components/ProfilesTable';
 import NlpSearch from '@/components/NlpSearch';
 import ProfileManagement from '@/components/ProfileManagement';
+import toast, { Toaster } from 'react-hot-toast';
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -288,9 +289,37 @@ export default function DashboardPage() {
   }
 
   return (
-    <DashboardLayout user={user} activeTab={activeTab} onTabChange={setActiveTab}>
-      <StatsGrid stats={stats} />
-      {renderContent()}
-    </DashboardLayout>
+    <>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+            fontFamily: 'JetBrains Mono',
+            fontSize: 13,
+            whiteSpace: 'pre-line',
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--accent)',
+              secondary: '#000',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'var(--danger)',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      <DashboardLayout user={user} activeTab={activeTab} onTabChange={setActiveTab}>
+        <StatsGrid stats={stats} />
+        {renderContent()}
+      </DashboardLayout>
+    </>
   );
 }

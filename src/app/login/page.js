@@ -64,65 +64,72 @@ function LoginContent() {
     }} />
   );
 
-  // Add keyframes for spinner animation
-  if (typeof window !== 'undefined') {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `;
-    if (!document.head.querySelector('#spinner-keyframes')) {
-      style.id = 'spinner-keyframes';
-      document.head.appendChild(style);
-    }
-  }
-
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', background: 'var(--bg-primary)',
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center',
+      justifyContent: 'center', 
+      background: '#0b0d0f',
     }}>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       <Toaster 
         position="top-right"
         toastOptions={{
           duration: 4000,
           style: {
-            background: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border)',
+            background: '#1a1d24',
+            color: '#e2e8f0',
+            border: '1px solid #2d323e',
             fontFamily: 'JetBrains Mono',
             fontSize: 13,
           },
           success: {
             iconTheme: {
-              primary: 'var(--accent)',
+              primary: '#00e5a0',
               secondary: '#000',
             },
           },
           error: {
             iconTheme: {
-              primary: 'var(--danger)',
+              primary: '#f43f5e',
               secondary: '#fff',
             },
           },
         }}
       />
       <div style={{
-        background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-        borderRadius: 12, padding: '48px 40px', textAlign: 'center',
-        maxWidth: 400, width: '100%',
+        background: '#131619', 
+        border: '1px solid #22282f',
+        borderRadius: 12, 
+        padding: '48px 40px', 
+        textAlign: 'center',
+        maxWidth: 400, 
+        width: '100%',
       }}>
         <div style={{
-          width: 48, height: 48, background: 'var(--accent)', borderRadius: 10,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 20px', fontFamily: 'JetBrains Mono', fontSize: 16, fontWeight: 700, color: '#000',
+          width: 48, 
+          height: 48, 
+          background: '#00e5a0', 
+          borderRadius: 10,
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          margin: '0 auto 20px', 
+          fontFamily: 'JetBrains Mono', 
+          fontSize: 16, 
+          fontWeight: 700, 
+          color: '#000',
         }}>IL</div>
 
-        <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>
-          Insighta <span style={{ color: 'var(--accent)' }}>Labs+</span>
+        <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8, color: '#dde4ee' }}>
+          Insighta <span style={{ color: '#00e5a0' }}>Labs+</span>
         </h1>
-        <p style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 32 }}>
+        <p style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: '#566070', marginBottom: 32 }}>
           Demographic intelligence platform
         </p>
 
@@ -130,9 +137,17 @@ function LoginContent() {
           href={redirectUrl || '#'}
           onClick={handleGitHubLogin}
           style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            background: '#fff', color: '#000', fontWeight: 600, fontSize: 15,
-            padding: '13px 24px', borderRadius: 8, textDecoration: 'none',
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            gap: 10,
+            background: '#fff', 
+            color: '#000', 
+            fontWeight: 600, 
+            fontSize: 15,
+            padding: '13px 24px', 
+            borderRadius: 8, 
+            textDecoration: 'none',
             transition: 'opacity .2s',
             cursor: redirectUrl && !isRedirecting ? 'pointer' : 'default',
             opacity: redirectUrl && !isRedirecting ? 1 : 0.7,
@@ -175,8 +190,8 @@ export default function LoginPage() {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        background: 'var(--bg-primary)',
-        color: 'var(--accent)',
+        background: '#0b0d0f',
+        color: '#00e5a0',
         fontFamily: 'JetBrains Mono'
       }}>
         Loading...

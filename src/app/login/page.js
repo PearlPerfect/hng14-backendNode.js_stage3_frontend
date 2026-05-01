@@ -17,27 +17,56 @@ function LoginContent() {
     // Set redirect URL only on client side
     setRedirectUrl(`${API}/auth/github?redirect_uri=${encodeURIComponent(window.location.origin + '/login')}`);
     
-    // Handle OAuth callback tokens in URL
+    // Handle OAuth callback tokens in URL 
     const access = searchParams.get('access_token');
     const refresh = searchParams.get('refresh_token');
     const username = searchParams.get('username');
     const error = searchParams.get('error');
     
+    // Log all URL parameters for debugging
+    console.log('=== Login Page URL Parameters ===');
+    console.log('Full URL:', window.location.href);
+    console.log('Access Token:', access);
+    console.log('Refresh Token:', refresh);
+    console.log('Username:', username);
+    console.log('Error:', error);
+    console.log('All params:', Object.fromEntries(searchParams.entries()));
+    
     if (error) {
+      console.error('Login error from URL:', error);
       toast.error(`Login failed: ${error}`);
       return;
     }
     
     if (access && refresh) {
+      console.log('=== Tokens Received Successfully ===');
+      console.log('📝 Access Token:', access);
+      console.log('📝 Refresh Token:', refresh);
+      console.log('📝 Token Lengths - Access:', access.length, 'chars, Refresh:', refresh.length, 'chars');
+      console.log('👤 Username:', username);
+      console.log('Token Preview - Access:', access.substring(0, 20) + '...');
+      console.log('Token Preview - Refresh:', refresh.substring(0, 20) + '...');
+      
+      // Save tokens to localStorage/cookies
       saveTokens({ accessToken: access, refreshToken: refresh, username });
+      
+      // Verify tokens were saved
+      const savedTokens = localStorage.getItem('auth_tokens');
+      console.log('Saved tokens to storage:', savedTokens ? 'Success' : 'Failed');
+      
       toast.success(`Welcome back, ${username || 'User'}! Login successful.`);
       setTimeout(() => {
+        console.log('Redirecting to dashboard...');
         router.replace('/dashboard');
       }, 1500);
       return;
     }
+    
     if (isLoggedIn()) {
+      console.log('User already logged in, redirecting to dashboard');
       router.replace('/dashboard');
+    } else {
+      console.log('No tokens found in URL, showing login button');
     }
   }, [searchParams, router, API]);
 
@@ -47,6 +76,7 @@ function LoginContent() {
       toast.error('Unable to initiate login. Please try again.');
       return;
     }
+    console.log('Initiating GitHub login with URL:', redirectUrl);
     setIsRedirecting(true);
     toast.loading('Redirecting to GitHub...');
   };

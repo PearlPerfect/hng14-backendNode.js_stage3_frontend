@@ -45,6 +45,22 @@ export default function DashboardPage() {
       }
       setUser(me.data);
 
+      await refreshStats();
+
+      await loadProfiles(1);
+      setLoading(false);
+    } catch (err) {
+      console.error('Init error:', err);
+      clearTokens();
+      setError(err.message);
+      setLoading(false);
+      router.replace('/login');
+    }
+  }
+
+  // Function to refresh stats
+  async function refreshStats() {
+    try {
       const [total, male, female, adult, senior] = await Promise.all([
         getProfiles({ limit: 1 }),
         getProfiles({ gender: 'male', limit: 1 }),
@@ -60,15 +76,8 @@ export default function DashboardPage() {
         adult: adult?.total || 0,
         senior: senior?.total || 0,
       });
-
-      await loadProfiles(1);
-      setLoading(false);
-    } catch (err) {
-      console.error('Init error:', err);
-      clearTokens();
-      setError(err.message);
-      setLoading(false);
-      router.replace('/login');
+    } catch (error) {
+      console.error('Error refreshing stats:', error);
     }
   }
 
@@ -98,23 +107,9 @@ export default function DashboardPage() {
       p.id === updatedProfile.id ? updatedProfile : p
     ));
     
-    // Refresh stats if age group or gender changed
+    // Refresh stats
     if (updatedProfile.age_group || updatedProfile.gender) {
-      const [total, male, female, adult, senior] = await Promise.all([
-        getProfiles({ limit: 1 }),
-        getProfiles({ gender: 'male', limit: 1 }),
-        getProfiles({ gender: 'female', limit: 1 }),
-        getProfiles({ age_group: 'adult', limit: 1 }),
-        getProfiles({ age_group: 'senior', limit: 1 }),
-      ]);
-
-      setStats({
-        total: total?.total || 0,
-        male: male?.total || 0,
-        female: female?.total || 0,
-        adult: adult?.total || 0,
-        senior: senior?.total || 0,
-      });
+      await refreshStats();
     }
   };
 
@@ -217,7 +212,15 @@ export default function DashboardPage() {
       case 'search':
         return <NlpSearch userRole={user?.role} />;
       case 'profiles':
-        return user?.role === 'admin' ? <ProfileManagement userRole={user?.role} onProfileUpdate={handleProfileUpdate} /> : <div style={{ textAlign: 'center', padding: 48 }}>Access denied. Admin only.</div>;
+        return user?.role === 'admin' ? (
+          <ProfileManagement 
+            userRole={user?.role} 
+            onProfileUpdate={handleProfileUpdate}
+            onStatsUpdate={refreshStats}
+          />
+        ) : (
+          <div style={{ textAlign: 'center', padding: 48 }}>Access denied. Admin only.</div>
+        );
       default:
         return null;
     }
